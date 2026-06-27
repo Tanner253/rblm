@@ -2,7 +2,7 @@
 
 import { clsx } from "clsx";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { memes, TEMPLATE_SRC } from "@/data/memes";
+import { catalogMemes, TEMPLATE_SRC } from "@/data/memes";
 import type { Meme } from "@/data/memes";
 import {
   CONTRACT_ADDRESS,
@@ -423,7 +423,7 @@ export function MemeStudio() {
               </p>
             )}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-w-3xl mx-auto">
-              {memes.map((m) => {
+              {catalogMemes.map((m) => {
                 const feedback =
                   catalogFeedback?.slug === m.slug
                     ? catalogFeedback.message

@@ -22,6 +22,13 @@ export const memes: Meme[] = [
   { slug: "blank", title: "Blank", src: "/memes/rabbit-lion-mask.png", aspect: 1 },
 ];
 
+/** Catalog order: newest first. Append new memes to `memes`; blank stays pinned last. */
+export const catalogMemes: Meme[] = (() => {
+  const pinned = memes.filter((m) => m.slug === "blank");
+  const rest = memes.filter((m) => m.slug !== "blank");
+  return [...rest].reverse().concat(pinned);
+})();
+
 export const TEMPLATE_SRC = "/templates/rabbit-lion-mask.png";
 
 export const TEXT_PLACEHOLDERS = {
