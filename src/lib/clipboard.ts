@@ -32,29 +32,56 @@ function blobToImage(blob: Blob): Promise<HTMLImageElement> {
   });
 }
 
-export async function copyImageBlob(blob: Blob): Promise<CopyResult> {
+function mimeForBlob(blob: Blob): string {
+  if (blob.type === "image/jpeg" || blob.type === "image/jpg") return "image/jpeg";
+  if (blob.type === "image/png") return "image/png";
+  if (blob.type === "image/webp") return "image/webp";
+  return "image/png";
+}
+
+export async function fetchImageBlob(src: string): Promise<Blob> {
+  const res = await fetch(src);
+  if (!res.ok) throw new Error("Fetch failed");
+  return res.blob();
+}
+
+export async function copyImageBlob(
+  blob: Blob,
+  filename = "rblm-meme.png"
+): Promise<CopyResult> {
+  const mime = mimeForBlob(blob);
+  let clipboardBlob = blob;
+  if (mime !== "image/png") {
+    try {
+      clipboardBlob = await blobToPng(blob);
+    } catch {
+      clipboardBlob = blob;
+    }
+  }
+
   try {
-    const png = blob.type === "image/png" ? blob : await blobToPng(blob);
     if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      const type = clipboardBlob.type || "image/png";
       await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": png }),
+        new ClipboardItem({ [type]: clipboardBlob }),
       ]);
       return "clipboard";
     }
   } catch {
-    /* fall through */
+    /* fall through — common on mobile */
   }
 
   try {
     if (navigator.share && navigator.canShare) {
-      const file = new File([blob], "rblm-meme.png", { type: "image/png" });
+      const shareMime = mimeForBlob(blob);
+      const file = new File([blob], filename, { type: shareMime });
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "RBLM meme" });
         return "share";
       }
     }
   } catch {
-    /* fall through */
+    /* user cancelled share sheet */
   }
 
   return "failed";
@@ -78,4 +105,19 @@ export function downloadBlob(blob: Blob, filename: string) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+export function filenameFromSrc(src: string, slug: string) {
+  const ext = src.split(".").pop()?.split("?")[0] || "png";
+  return `rblm-${slug}.${ext}`;
+}
+
+export async function copyImageFromSrc(src: string, slug: string): Promise<CopyResult> {
+  const blob = await fetchImageBlob(src);
+  return copyImageBlob(blob, filenameFromSrc(src, slug));
+}
+
+export async function downloadImageFromSrc(src: string, slug: string) {
+  const blob = await fetchImageBlob(src);
+  downloadBlob(blob, filenameFromSrc(src, slug));
 }
