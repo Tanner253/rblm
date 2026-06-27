@@ -135,8 +135,8 @@ export function computeTextLayerLayout(
 ): TextLayerLayout {
   const text = (content.trim() || layer.placeholder).toUpperCase();
   const maxPx = (width * layer.maxWidth) / 100;
-  const baseFontSize = Math.round(width * layer.scale);
-  const minFontSize = Math.max(10, Math.round(baseFontSize * MIN_FONT_SCALE));
+  const baseFontSize = width * layer.scale;
+  const minFontSize = Math.max(10, baseFontSize * MIN_FONT_SCALE);
   const ctx = getMeasureCtx();
 
   const layoutAt = (fontSize: number): TextLayerLayout | null => {
@@ -160,21 +160,15 @@ export function computeTextLayerLayout(
   if (baseLayout) return baseLayout;
 
   let lo = minFontSize;
-  let hi = baseFontSize - 1;
-  let best: TextLayerLayout | null = null;
-
-  while (lo <= hi) {
-    const mid = Math.floor((lo + hi) / 2);
-    const candidate = layoutAt(mid);
-    if (candidate) {
-      best = candidate;
-      lo = mid + 1;
-    } else {
-      hi = mid - 1;
-    }
+  let hi = baseFontSize;
+  for (let i = 0; i < 16; i++) {
+    const mid = (lo + hi) / 2;
+    if (layoutAt(mid)) lo = mid;
+    else hi = mid;
   }
 
-  if (best) return best;
+  const fitted = layoutAt(lo);
+  if (fitted) return fitted;
 
   const letterSpacing = minFontSize * MEME_LETTER_SPACING_EM;
   if (ctx) {

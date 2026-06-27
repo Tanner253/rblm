@@ -51,6 +51,7 @@ function MemeTextLayer({
   editing,
   onStartEdit,
   onEndEdit,
+  onDraftChange,
   onDrag,
 }: {
   layer: TextLayer;
@@ -59,6 +60,7 @@ function MemeTextLayer({
   editing: boolean;
   onStartEdit: () => void;
   onEndEdit: (text: string) => void;
+  onDraftChange: (text: string) => void;
   onDrag: (x: number, y: number) => void;
 }) {
   const editRef = useRef<HTMLDivElement>(null);
@@ -69,26 +71,40 @@ function MemeTextLayer({
     oy: number;
     moved: boolean;
   } | null>(null);
+  const [draftText, setDraftText] = useState(layer.text);
 
   const empty = layerIsEmpty(layer);
-  const displayText = layerDisplayText(layer);
+  const layoutSource = editing ? draftText : layer.text;
   const layout = useMemo(
-    () => computeTextLayerLayout(layer, displayText, width, height),
-    [layer, displayText, width, height]
+    () => computeTextLayerLayout(layer, layoutSource, width, height),
+    [layer, layoutSource, width, height]
   );
   const fontSize = layout.fontSize;
 
   useEffect(() => {
-    if (!editing || !editRef.current) return;
-    editRef.current.textContent = layer.text;
-    editRef.current.focus();
-    const sel = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(editRef.current);
-    range.collapse(false);
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-  }, [editing, layer.text]);
+    if (!editing) return;
+    setDraftText(layer.text);
+    requestAnimationFrame(() => {
+      const el = editRef.current;
+      if (!el) return;
+      el.textContent = layer.text;
+      el.focus();
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+    });
+    // Only re-init when entering edit mode or switching layers — not on each keystroke.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, layer.id]);
+
+  const onInput = (e: React.FormEvent<HTMLDivElement>) => {
+    const text = e.currentTarget.innerText.replace(/\s+/g, " ").trimStart();
+    setDraftText(text);
+    onDraftChange(text.trim());
+  };
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (editing) return;
@@ -140,6 +156,7 @@ function MemeTextLayer({
         transform: "translate(-50%, -50%)",
         maxWidth: `${layer.maxWidth}%`,
         fontSize,
+        transition: "font-size 0.12s ease-out",
         ...textStyle,
       }}
       onPointerDown={onPointerDown}
@@ -155,6 +172,7 @@ function MemeTextLayer({
           suppressContentEditableWarning
           data-placeholder={layer.placeholder}
           className="outline-none whitespace-pre-wrap break-words meme-placeholder"
+          onInput={onInput}
           onBlur={(e) =>
             onEndEdit(e.currentTarget.innerText.replace(/\s+/g, " ").trim())
           }
@@ -330,6 +348,7 @@ export function MemeStudio() {
                 patchLayer(layer.id, { text });
                 setEditingId(null);
               }}
+              onDraftChange={(text) => patchLayer(layer.id, { text })}
               onDrag={(x, y) => patchLayer(layer.id, { x, y })}
             />
           ))}
