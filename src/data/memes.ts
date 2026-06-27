@@ -18,6 +18,7 @@ export const memes: Meme[] = [
   { slug: "flex-vs-fold", title: "Flex vs fold", src: "/memes/larp.jpg", aspect: 1 },
   { slug: "dark-mode", title: "Dark mode", src: "/memes/tf.jpg", aspect: 1 },
   { slug: "quiet-typing", title: "Quiet typing", src: "/memes/lingiga.jpg", aspect: 1 },
+  { slug: "wtf", title: "WTF", src: "/memes/wtf.jpg", aspect: 1 },
   { slug: "blank", title: "Blank", src: "/memes/rabbit-lion-mask.png", aspect: 1 },
 ];
 
